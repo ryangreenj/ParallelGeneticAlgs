@@ -110,6 +110,44 @@ Board* PredetermineTiles(Board *boardIn)
     byte *boardArrOut = new byte[dimension * dimension];
     cudaMemcpy(boardArrOut, dev_boardOut, dimension * dimension * sizeof(byte), cudaMemcpyDeviceToHost);
 
+    cudaFree(dev_boardIn);
+    cudaFree(dev_boardOut);
+
     Board *out = new Board(dimension, boardArrOut);
     return out;
+}
+
+
+
+__global__ void RankFitnessKernel(int numChromosomes, int numGenes, byte *flattenedPop, int *fitnessRankOut)
+{
+    //TODO
+}
+
+int* RankFitness(Population *popIn)
+{
+    int numChromosomes = 0;
+    int numGenes = 0;
+
+    // Arguments are output args, filled by function
+    // Need to delete returned pointer at end
+    byte *flattenedPop = popIn->FlattenPopulationToArray(numChromosomes, numGenes);
+
+    byte *dev_flattenedPop;
+    int *dev_fitnessRank;
+
+    cudaMalloc((void **)&dev_flattenedPop, numChromosomes * numGenes * sizeof(byte));
+    cudaMalloc((void **)&dev_fitnessRank, numChromosomes * sizeof(int));
+
+    cudaMemcpy(dev_flattenedPop, flattenedPop, numChromosomes * numGenes * sizeof(byte), cudaMemcpyHostToDevice);
+
+    RankFitnessKernel<<<numChromosomes, numGenes>>>(numChromosomes, numGenes, dev_flattenedPop, dev_fitnessRank);
+
+    int *fitnessRank = new int[numChromosomes];
+    cudaMemcpy(fitnessRank, dev_fitnessRank, numChromosomes * sizeof(int), cudaMemcpyDeviceToHost);
+
+    cudaFree(dev_flattenedPop);
+    cudaFree(dev_fitnessRank);
+
+    return fitnessRank;
 }

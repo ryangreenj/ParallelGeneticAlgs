@@ -4,6 +4,7 @@
 #include "Utility.h"
 #include "Sudoku/Board.h"
 #include "Sudoku/Kernel.cuh"
+#include "Sudoku/Population.h"
 
 using namespace std;
 
@@ -31,9 +32,16 @@ int SudokuDriver(string fileIn)
 
     // Can parallelize initial step of determining any tiles from start board
     Board *out = PredetermineTiles(board);
-    out->PrintBoard(cout);
+    
+    Population *pop = new Population(out, 10);
     delete out;
 
+    pop->PrintPopulation(cout);
+
+    int *fitnessRanks = RankFitness(pop);
+    delete fitnessRanks;
+
+    delete pop;
     delete board;
 
     return 0;
