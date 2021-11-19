@@ -145,7 +145,8 @@ int* RankFitness(Population *popIn)
 
     int *fitnessRank = new int[numChromosomes];
     cudaMemcpy(fitnessRank, dev_fitnessRank, numChromosomes * sizeof(int), cudaMemcpyDeviceToHost);
-
+    
+    delete[] flattenedPop;
     cudaFree(dev_flattenedPop);
     cudaFree(dev_fitnessRank);
 
