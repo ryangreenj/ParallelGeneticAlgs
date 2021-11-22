@@ -1,6 +1,7 @@
 #include "Sudoku/Population.h"
 
 #include <cstdlib>
+#include <numeric>
 
 Population::Population(int numGenesIn, bool *lockedGenesIn, std::vector<Chromosome *> chromosomesIn)
 {
@@ -47,13 +48,16 @@ bool* Population::GetLockedGenes()
 
 bool Population::GeneratePopulation(Board *boardIn, int numChromosomes)
 {
-    // Can probably parellelize this function as well
     int dim = boardIn->GetDimension();
+    int subDim = sqrt(dim);
     numGenes = dim * dim;
 
     lockedGenes = new bool[numGenes];
 
-    std::vector<int> numValsLeft = std::vector<int>(dim, dim); // When dim=9 [9 ones left, 9 twos left, ..., 9 nines left]
+    std::vector<int> vals = std::vector<int>(dim);
+    std::iota(vals.begin(), vals.end(), 1); // Fill vals with [1, 2, ..., dim]
+
+    std::vector<std::vector<int>> subGridVals = std::vector<std::vector<int>>(dim, vals);
 
     byte *board = boardIn->GetBoardPointer();
 
@@ -62,7 +66,8 @@ bool Population::GeneratePopulation(Board *boardIn, int numChromosomes)
         if (board[iTile] != 0)
         {
             lockedGenes[iTile] = true;
-            --numValsLeft[board[iTile] - 1];
+            int subGrid = GET_SUB_GRID(iTile, subDim);
+            subGridVals[subGrid].erase(std::remove(subGridVals[subGrid].begin(), subGridVals[subGrid].end(), board[iTile]), subGridVals[subGrid].end());
         }
         else
         {
@@ -72,14 +77,8 @@ bool Population::GeneratePopulation(Board *boardIn, int numChromosomes)
 
     for (int iChromosome = 0; iChromosome < numChromosomes; ++iChromosome)
     {
-        std::vector<int> numValsLeftCopy = numValsLeft;
+        auto subGridValsCopy = subGridVals;
         byte *newBoard = new byte[numGenes];
-
-        std::vector<int> valsLeft = std::vector<int>(dim); // [1, 2, 3, ..., dim]
-        for (int i = 0; i < dim; ++i)
-        {
-            valsLeft[i] = i + 1;
-        }
 
         for (int iTile = 0; iTile < numGenes; ++iTile)
         {
@@ -89,16 +88,11 @@ bool Population::GeneratePopulation(Board *boardIn, int numChromosomes)
             }
             else
             {
-                int tryIndex = std::rand() % valsLeft.size();
-                int tryVal = valsLeft[tryIndex];
+                int subGrid = GET_SUB_GRID(iTile, subDim);
+                int tryIndex = std::rand() % subGridValsCopy[subGrid].size();
 
-                --numValsLeftCopy[tryVal - 1];
-                newBoard[iTile] = tryVal;
-
-                if (numValsLeftCopy[tryVal - 1] <= 0)
-                {
-                    valsLeft.erase(valsLeft.begin() + tryIndex);
-                }
+                newBoard[iTile] = subGridValsCopy[subGrid][tryIndex];
+                subGridValsCopy[subGrid].erase(subGridValsCopy[subGrid].begin() + tryIndex);
             }
         }
 

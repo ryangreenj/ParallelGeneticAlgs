@@ -3,11 +3,14 @@
 
 #include "Sudoku/Kernel.cuh"
 
-__global__ void PredetermineTilesKernel(int dimension, byte *boardIn, byte *boardOut)
+__global__ void PredetermineTilesKernel(int subDim, int dimension, byte *boardIn, byte *boardOut)
 {
     int tileId = threadIdx.x;
     int row = tileId / dimension;
     int col = tileId % dimension;
+    int subGrid = GET_SUB_GRID(tileId, subDim);
+    int rowOffset = subDim * (subGrid / subDim); // Subgrid tiles logic
+    int colOffset = subDim * (subGrid % subDim);
 
     __shared__ bool modified[MAX_DIM * MAX_DIM];
     __shared__ bool madeChange;
@@ -40,7 +43,12 @@ __global__ void PredetermineTilesKernel(int dimension, byte *boardIn, byte *boar
                     usedNums[tile - 1] = true;
                 }
 
-                // TODO subgrid logic
+                // Every tile in subgrid, convert iVal into 1D index of board
+                tile = boardIn[(rowOffset + (iVal / subDim)) * dimension + colOffset + (iVal % subDim)];
+                if (tile > 0)
+                {
+                    usedNums[tile - 1] = true;
+                }
             }
 
             byte candidate = 0;
@@ -96,6 +104,7 @@ __global__ void PredetermineTilesKernel(int dimension, byte *boardIn, byte *boar
 Board* PredetermineTiles(Board *boardIn)
 {
     int dimension = boardIn->GetDimension();
+    int subDim = sqrt(dimension);
     byte *boardArrIn = boardIn->GetBoardPointer();
 
     byte *dev_boardIn, *dev_boardOut;
@@ -105,7 +114,7 @@ Board* PredetermineTiles(Board *boardIn)
 
     cudaMemcpy(dev_boardIn, boardArrIn, dimension * dimension * sizeof(byte), cudaMemcpyHostToDevice);
     
-    PredetermineTilesKernel<<<1, dimension * dimension>>>(dimension, dev_boardIn, dev_boardOut);
+    PredetermineTilesKernel<<<1, dimension * dimension>>>(subDim, dimension, dev_boardIn, dev_boardOut);
 
     byte *boardArrOut = new byte[dimension * dimension];
     cudaMemcpy(boardArrOut, dev_boardOut, dimension * dimension * sizeof(byte), cudaMemcpyDeviceToHost);
