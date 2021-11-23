@@ -1,34 +1,34 @@
 #ifndef SUDOKU_POPULATION_H
 #define SUDOKU_POPULATION_H
 
+#include <memory>
 #include <ostream>
 #include <vector>
 
 #include "Sudoku/Board.h"
-#include "Sudoku/Chromosome.h"
 #include "Utility.h"
 
 class Population
 {
 public:
     Population() {}
-    Population(Board *boardIn, int numChromosomes) { GeneratePopulation(boardIn, numChromosomes); }
-    Population(int numGenesIn, bool *lockedGenesIn, std::vector<Chromosome *> chromosomesIn);
-    ~Population() { if (lockedGenes) { delete[]lockedGenes; lockedGenes = nullptr; } }
+    Population(Board *boardIn, int numChromosomesIn) { GeneratePopulation(boardIn, numChromosomesIn); }
+    Population(int numGenesIn, int numChromosomesIn, std::shared_ptr<bool[]> lockedGenesIn, byte *flattenedPopulationIn);
+    ~Population() { if (flattenedPopulation) { delete[]flattenedPopulation; flattenedPopulation = nullptr; } }
 
-    bool AddChromosome(Chromosome *chromosomeIn);
     int GetSize();
     int GetNumGenes();
-    bool* GetLockedGenes(); // Array of size numGenes, false=unlocked  true=locked
+    std::shared_ptr<bool[]> GetLockedGenes(); // Array of size numGenes, false=unlocked  true=locked
 
     bool GeneratePopulation(Board *boardIn, int numChromosomes);
-    byte* FlattenPopulationToArray(int &popSizeOut, int &numGenesOut); // Returned pointer NEEDS to be deleted by user
+    byte* FlattenPopulationToArray(int &popSizeOut, int &numGenesOut, bool doCopy=true); // Returned pointer NEEDS to be deleted by user IF doCopy == true
     void PrintPopulation(std::ostream &out);
 
 private:
     int numGenes = 0;
-    bool *lockedGenes = nullptr;
-    std::vector<Chromosome*> chromosomes;
+    int numChromosomes = 0;
+    std::shared_ptr<bool[]> lockedGenes = nullptr;
+    byte *flattenedPopulation = nullptr;
 };
 
 #endif
