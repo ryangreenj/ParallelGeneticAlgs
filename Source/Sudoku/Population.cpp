@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <math.h>
 #include <numeric>
 
 Population::Population(int numGenesIn, int numChromosomesIn, std::shared_ptr<bool[]> lockedGenesIn, char *flattenedPopulationIn)
