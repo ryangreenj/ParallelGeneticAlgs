@@ -32,7 +32,7 @@ bool Board::LoadFromFile(string fileName)
         return false;
     }
 
-    board = new byte[dimension*dimension];
+    board = new char[dimension*dimension];
 
     // Read remaining lines of the board
     for (int y = 0; y < dimension; ++y)
