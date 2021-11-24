@@ -10,19 +10,19 @@ class Board
 {
 public:
     Board() {}
-    Board(int dimensionIn, byte *boardIn) { dimension = dimensionIn; board = boardIn; }
+    Board(int dimensionIn, char *boardIn) { dimension = dimensionIn; board = boardIn; }
     Board(std::string fileName, bool &success) { success = LoadFromFile(fileName); }
     ~Board() { if (board) { delete []board; board = nullptr; } }
 
     int GetDimension() { return dimension; }
-    byte *GetBoardPointer() { return board; }
+    char *GetBoardPointer() { return board; }
 
     bool LoadFromFile(std::string fileName);
     void PrintBoard(std::ostream &out);
 
 private:
     int dimension = 0;
-    byte *board = nullptr; // dimension*dimension length
+    char *board = nullptr; // dimension*dimension length
 };
 
 #endif

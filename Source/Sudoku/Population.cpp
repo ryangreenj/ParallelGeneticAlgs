@@ -1,9 +1,10 @@
 #include "Sudoku/Population.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <numeric>
 
-Population::Population(int numGenesIn, int numChromosomesIn, std::shared_ptr<bool[]> lockedGenesIn, byte *flattenedPopulationIn)
+Population::Population(int numGenesIn, int numChromosomesIn, std::shared_ptr<bool[]> lockedGenesIn, char *flattenedPopulationIn)
 {
     numGenes = numGenesIn;
     numChromosomes = numChromosomesIn;
@@ -34,7 +35,7 @@ bool Population::GeneratePopulation(Board *boardIn, int numChromosomesIn)
     int subDim = sqrt(dim);
     numGenes = dim * dim;
 
-    flattenedPopulation = new byte[numChromosomes * numGenes];
+    flattenedPopulation = new char[numChromosomes * numGenes];
 
     lockedGenes = std::shared_ptr<bool[]>(new bool[numGenes]);
 
@@ -43,7 +44,7 @@ bool Population::GeneratePopulation(Board *boardIn, int numChromosomesIn)
 
     std::vector<std::vector<int>> subGridVals = std::vector<std::vector<int>>(dim, vals);
 
-    byte *board = boardIn->GetBoardPointer();
+    char *board = boardIn->GetBoardPointer();
 
     for (int iTile = 0; iTile < numGenes; ++iTile)
     {
@@ -82,14 +83,14 @@ bool Population::GeneratePopulation(Board *boardIn, int numChromosomesIn)
     return true;
 }
 
-byte* Population::FlattenPopulationToArray(int &popSizeOut, int &numGenesOut, bool doCopy)
+char* Population::FlattenPopulationToArray(int &popSizeOut, int &numGenesOut, bool doCopy)
 {
     popSizeOut = GetSize();
     numGenesOut = GetNumGenes();
 
     if (doCopy)
     {
-        byte *flattened = new byte[popSizeOut * numGenesOut];
+        char *flattened = new char[popSizeOut * numGenesOut];
 
         for (int i = 0; i < (popSizeOut * numGenesOut); ++i)
         {

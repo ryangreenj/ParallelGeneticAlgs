@@ -3,7 +3,7 @@
 
 #include "Sudoku/Kernel.cuh"
 
-__global__ void PredetermineTilesKernel(int subDim, int dimension, byte *boardIn, byte *boardOut)
+__global__ void PredetermineTilesKernel(int subDim, int dimension, char *boardIn, char *boardOut)
 {
     int tileId = threadIdx.x;
     int row = tileId / dimension;
@@ -30,7 +30,7 @@ __global__ void PredetermineTilesKernel(int subDim, int dimension, byte *boardIn
             for (int iVal = 0; iVal < dimension; ++iVal)
             {
                 // Every tile in column
-                byte tile = boardIn[iVal * dimension + col];
+                char tile = boardIn[iVal * dimension + col];
                 if (tile > 0)
                 {
                     usedNums[tile - 1] = true;
@@ -51,7 +51,7 @@ __global__ void PredetermineTilesKernel(int subDim, int dimension, byte *boardIn
                 }
             }
 
-            byte candidate = 0;
+            char candidate = 0;
             for (int i = 0; i < dimension; i++)
             {
                 if (!usedNums[i])
@@ -105,19 +105,19 @@ Board* PredetermineTiles(Board *boardIn)
 {
     int dimension = boardIn->GetDimension();
     int subDim = sqrt(dimension);
-    byte *boardArrIn = boardIn->GetBoardPointer();
+    char *boardArrIn = boardIn->GetBoardPointer();
 
-    byte *dev_boardIn, *dev_boardOut;
+    char *dev_boardIn, *dev_boardOut;
 
-    cudaMalloc((void **)&dev_boardIn, dimension * dimension * sizeof(byte));
-    cudaMalloc((void **)&dev_boardOut, dimension * dimension * sizeof(byte));
+    cudaMalloc((void **)&dev_boardIn, dimension * dimension * sizeof(char));
+    cudaMalloc((void **)&dev_boardOut, dimension * dimension * sizeof(char));
 
-    cudaMemcpy(dev_boardIn, boardArrIn, dimension * dimension * sizeof(byte), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_boardIn, boardArrIn, dimension * dimension * sizeof(char), cudaMemcpyHostToDevice);
     
     PredetermineTilesKernel<<<1, dimension * dimension>>>(subDim, dimension, dev_boardIn, dev_boardOut);
 
-    byte *boardArrOut = new byte[dimension * dimension];
-    cudaMemcpy(boardArrOut, dev_boardOut, dimension * dimension * sizeof(byte), cudaMemcpyDeviceToHost);
+    char *boardArrOut = new char[dimension * dimension];
+    cudaMemcpy(boardArrOut, dev_boardOut, dimension * dimension * sizeof(char), cudaMemcpyDeviceToHost);
 
     cudaFree(dev_boardIn);
     cudaFree(dev_boardOut);
@@ -128,7 +128,7 @@ Board* PredetermineTiles(Board *boardIn)
 
 
 
-__global__ void RankFitnessKernel(int numChromosomes, int numGenes, byte *flattenedPop, int *fitnessRankOut)
+__global__ void RankFitnessKernel(int numChromosomes, int numGenes, char *flattenedPop, int *fitnessRankOut)
 {
     //TODO
 }
@@ -140,15 +140,15 @@ int* RankFitness(Population *popIn)
 
     // Arguments are output args, filled by function
     // Need to delete returned pointer at end
-    byte *flattenedPop = popIn->FlattenPopulationToArray(numChromosomes, numGenes);
+    char *flattenedPop = popIn->FlattenPopulationToArray(numChromosomes, numGenes);
 
-    byte *dev_flattenedPop;
+    char *dev_flattenedPop;
     int *dev_fitnessRank;
 
-    cudaMalloc((void **)&dev_flattenedPop, numChromosomes * numGenes * sizeof(byte));
+    cudaMalloc((void **)&dev_flattenedPop, numChromosomes * numGenes * sizeof(char));
     cudaMalloc((void **)&dev_fitnessRank, numChromosomes * sizeof(int));
 
-    cudaMemcpy(dev_flattenedPop, flattenedPop, numChromosomes * numGenes * sizeof(byte), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_flattenedPop, flattenedPop, numChromosomes * numGenes * sizeof(char), cudaMemcpyHostToDevice);
 
     RankFitnessKernel<<<numChromosomes, numGenes>>>(numChromosomes, numGenes, dev_flattenedPop, dev_fitnessRank);
 
