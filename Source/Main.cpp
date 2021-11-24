@@ -32,6 +32,8 @@ int SudokuDriver(string fileIn)
 
     // Can parallelize initial step of determining any tiles from start board
     Board *out = PredetermineTiles(board);
+    cout << "Initial Board\n";
+    out->PrintBoard(cout);
     
     Population *pop = new Population(out, 10);
     delete out;

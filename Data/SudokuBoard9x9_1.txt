@@ -1,4 +1,4 @@
-Sample board from https://en.wikipedia.org/wiki/Sudoku
+Sample board from https://en.wikipedia.org/wiki/Sudoku  This board will be completed by PredetermineTiles step
 3
 5,3,0,0,7,0,0,0,0,
 6,0,0,1,9,5,0,0,0,

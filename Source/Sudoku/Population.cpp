@@ -1,38 +1,19 @@
 #include "Sudoku/Population.h"
 
 #include <cstdlib>
+#include <numeric>
 
-Population::Population(int numGenesIn, bool *lockedGenesIn, std::vector<Chromosome *> chromosomesIn)
+Population::Population(int numGenesIn, int numChromosomesIn, std::shared_ptr<bool[]> lockedGenesIn, byte *flattenedPopulationIn)
 {
     numGenes = numGenesIn;
+    numChromosomes = numChromosomesIn;
     lockedGenes = lockedGenesIn;
-    for (Chromosome *c : chromosomesIn)
-    { 
-       chromosomes.push_back(c);
-    }
-}
-
-bool Population::AddChromosome(Chromosome *chromosomeIn)
-{
-    if (numGenes == 0)
-    {
-        numGenes = chromosomeIn->GetNumGenes();
-    }
-
-    if (numGenes == chromosomeIn->GetNumGenes())
-    {
-        chromosomes.push_back(chromosomeIn);
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    flattenedPopulation = flattenedPopulationIn;
 }
 
 int Population::GetSize()
 {
-    return chromosomes.size();
+    return numChromosomes;
 }
 
 int Population::GetNumGenes()
@@ -40,20 +21,27 @@ int Population::GetNumGenes()
     return numGenes;
 }
 
-bool* Population::GetLockedGenes()
+std::shared_ptr<bool[]> Population::GetLockedGenes()
 {
+
     return lockedGenes;
 }
 
-bool Population::GeneratePopulation(Board *boardIn, int numChromosomes)
+bool Population::GeneratePopulation(Board *boardIn, int numChromosomesIn)
 {
-    // Can probably parellelize this function as well
+    numChromosomes = numChromosomesIn;
     int dim = boardIn->GetDimension();
+    int subDim = sqrt(dim);
     numGenes = dim * dim;
 
-    lockedGenes = new bool[numGenes];
+    flattenedPopulation = new byte[numChromosomes * numGenes];
 
-    std::vector<int> numValsLeft = std::vector<int>(dim, dim); // When dim=9 [9 ones left, 9 twos left, ..., 9 nines left]
+    lockedGenes = std::shared_ptr<bool[]>(new bool[numGenes]);
+
+    std::vector<int> vals = std::vector<int>(dim);
+    std::iota(vals.begin(), vals.end(), 1); // Fill vals with [1, 2, ..., dim]
+
+    std::vector<std::vector<int>> subGridVals = std::vector<std::vector<int>>(dim, vals);
 
     byte *board = boardIn->GetBoardPointer();
 
@@ -62,7 +50,8 @@ bool Population::GeneratePopulation(Board *boardIn, int numChromosomes)
         if (board[iTile] != 0)
         {
             lockedGenes[iTile] = true;
-            --numValsLeft[board[iTile] - 1];
+            int subGrid = GET_SUB_GRID(iTile, subDim);
+            subGridVals[subGrid].erase(std::remove(subGridVals[subGrid].begin(), subGridVals[subGrid].end(), board[iTile]), subGridVals[subGrid].end());
         }
         else
         {
@@ -72,76 +61,54 @@ bool Population::GeneratePopulation(Board *boardIn, int numChromosomes)
 
     for (int iChromosome = 0; iChromosome < numChromosomes; ++iChromosome)
     {
-        std::vector<int> numValsLeftCopy = numValsLeft;
-        byte *newBoard = new byte[numGenes];
-
-        std::vector<int> valsLeft = std::vector<int>(dim); // [1, 2, 3, ..., dim]
-        for (int i = 0; i < dim; ++i)
-        {
-            valsLeft[i] = i + 1;
-        }
+        auto subGridValsCopy = subGridVals;
 
         for (int iTile = 0; iTile < numGenes; ++iTile)
         {
             if (board[iTile] != 0)
             {
-                newBoard[iTile] = board[iTile];
+                flattenedPopulation[iChromosome * numGenes + iTile] = board[iTile];
             }
             else
             {
-                int tryIndex = std::rand() % valsLeft.size();
-                int tryVal = valsLeft[tryIndex];
+                int subGrid = GET_SUB_GRID(iTile, subDim);
+                int tryIndex = std::rand() % subGridValsCopy[subGrid].size();
 
-                --numValsLeftCopy[tryVal - 1];
-                newBoard[iTile] = tryVal;
-
-                if (numValsLeftCopy[tryVal - 1] <= 0)
-                {
-                    valsLeft.erase(valsLeft.begin() + tryIndex);
-                }
+                flattenedPopulation[iChromosome * numGenes + iTile] = subGridValsCopy[subGrid][tryIndex];
+                subGridValsCopy[subGrid].erase(subGridValsCopy[subGrid].begin() + tryIndex);
             }
         }
-
-        Chromosome *newChromosome = new Chromosome(numGenes, newBoard);
-
-        chromosomes.push_back(newChromosome);
     }
     return true;
 }
 
-byte* Population::FlattenPopulationToArray(int &popSizeOut, int &numGenesOut)
+byte* Population::FlattenPopulationToArray(int &popSizeOut, int &numGenesOut, bool doCopy)
 {
     popSizeOut = GetSize();
     numGenesOut = GetNumGenes();
 
-    byte *flattened = new byte[popSizeOut * numGenesOut];
-
-    for (int iChromosome = 0; iChromosome < popSizeOut; ++iChromosome)
+    if (doCopy)
     {
-        byte *board = chromosomes[iChromosome]->GetBoardPointer();
-        
-        if (board)
-        {
-            for (int iGene = 0; iGene < numGenesOut; ++iGene)
-            {
-                flattened[iChromosome * numGenesOut + iGene] = board[iGene];
-            }
-        }
-        else // board should never be null
-        {
-            delete[] flattened;
-            return nullptr;
-        }
-    }
+        byte *flattened = new byte[popSizeOut * numGenesOut];
 
-    return flattened;
+        for (int i = 0; i < (popSizeOut * numGenesOut); ++i)
+        {
+            flattened[i] = flattenedPopulation[i];
+        }
+
+        return flattened;
+    }
+    else
+    {
+        return flattenedPopulation;
+    }
 }
 
 void Population::PrintPopulation(std::ostream &out)
 {
     int dimension = sqrt(numGenes);
 
-    for (int i = 0; i < chromosomes.size(); ++i)
+    for (int i = 0; i < numChromosomes; ++i)
     {
         out << "Chromosome " << i + 1 << "\n";
 
@@ -149,7 +116,7 @@ void Population::PrintPopulation(std::ostream &out)
         {
             for (int x = 0; x < dimension; ++x)
             {
-                out << (int)chromosomes[i]->GetBoardPointer()[y * dimension + x] << ' ';
+                out << (int)flattenedPopulation[i * numGenes + y * dimension + x] << ' ';
             }
             out << '\n';
         }
