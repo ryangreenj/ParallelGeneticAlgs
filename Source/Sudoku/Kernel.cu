@@ -231,12 +231,18 @@ __global__ void BreedKernel(int numChromosomes, int numGenes, char *flattenedPop
     // double choices[2] = {0.20, 0.8}; // Keep top 20%, breed next 60%, drop final 20%
     int swap = blockIdx.x % 2 ? -1 : 1;
 
-    int offset = ((blockIdx.x + swap) * numGenes) + threadIdx.x;
-    int offset_new = ((blockIdx.x) * numGenes) + threadIdx.x;
-    flattenedPopOut[offset_new] = flattenedPop[offset];
-    // if (*(fitnessRank + blockIdx.X) <= choices[0] * numChromosomes ){
-    // }
+    int grid = ((threadIdx.x % 9) / 3) + ((threadIdx.x / 27) * 3);
+    int offset = ((blockIdx.x) * numGenes) + threadIdx.x;
 
+    if (grid == gridswap[blockIdx.x])
+    {
+        int offset_new = ((blockIdx.x + swap) * numGenes) + threadIdx.x;
+        flattenedPopOut[offset] = flattenedPop[offset_new];
+    }
+    else 
+    {
+        flattenedPopOut[offset] = flattenedPop[offset];
+    }
 }
 
 Population* Breed(Population *popIn, int* rankings)
@@ -259,12 +265,10 @@ Population* Breed(Population *popIn, int* rankings)
         int swap = rand() % 9;
         grid_swap[i * 2] = swap;
         grid_swap[(i * 2) + 1] = swap;
-        // if (*(rankings + i) < keeps_size){
-        //     std::cout << i << ", " << *(rankings + i) << keeps_size <<"\n";
-        //     keeps[keep_index] = i;
-        //     keep_index++;
-        // }
+
+        std::cout << swap << '\n';
     }
+    std::cout << ";";
 
     cudaMalloc((void **)&dev_flattenedPopBreed, numChromosomes * numGenes * sizeof(char));
     cudaMalloc((void **)&dev_flattenedPopBreedOut, numChromosomes * numGenes * sizeof(char));
@@ -281,6 +285,5 @@ Population* Breed(Population *popIn, int* rankings)
     cudaMemcpy(popout, dev_flattenedPopBreedOut, numChromosomes * numGenes * sizeof(char), cudaMemcpyDeviceToHost);
     
     Population *out = new Population(numGenes, numChromosomes, lockedGenesIn, popout);
-    // Population *out = new Population(popout, numChromosomes);
     return out;
 }
