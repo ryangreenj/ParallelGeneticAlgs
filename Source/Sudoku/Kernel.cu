@@ -2,6 +2,7 @@
 #include "device_launch_parameters.h"
 
 #include "Sudoku/Kernel.cuh"
+#include <iostream>
 
 __global__ void PredetermineTilesKernel(int subDim, int dimension, char *boardIn, char *boardOut)
 {
@@ -128,7 +129,7 @@ Board* PredetermineTiles(Board *boardIn)
 
 
 
-__global__ void RankFitnessKernel(int dimension, char *flattenedPop, int *fitnessRankOut)
+__global__ void RankFitnessKernel(int chromosomes, int dimension, char *flattenedPop, int *fitnessCount)
 {
     int tileId = threadIdx.x;
     int chromOffset = blockIdx.x * blockDim.x;
@@ -172,12 +173,13 @@ __global__ void RankFitnessKernel(int dimension, char *flattenedPop, int *fitnes
 
     if (threadIdx.x == 0)
     {
-        fitnessRankOut[blockIdx.x] = 0;
+        fitnessCount[blockIdx.x] = 0;
         for (int i = 0; i < dimension; ++i)
         {
-            fitnessRankOut[blockIdx.x] += errors[i * dimension];
+            fitnessCount[blockIdx.x] += errors[i * dimension];
         }
     }
+
 }
 
 int* RankFitness(Population *popIn)
@@ -191,21 +193,36 @@ int* RankFitness(Population *popIn)
     int dimension = sqrt(numGenes);
 
     char *dev_flattenedPop;
-    int *dev_fitnessRank;
+    int *dev_fitnessCount;
 
     cudaMalloc((void **)&dev_flattenedPop, numChromosomes * numGenes * sizeof(char));
-    cudaMalloc((void **)&dev_fitnessRank, numChromosomes * sizeof(int));
+    cudaMalloc((void **)&dev_fitnessCount, numChromosomes * sizeof(int));
 
     cudaMemcpy(dev_flattenedPop, flattenedPop, numChromosomes * numGenes * sizeof(char), cudaMemcpyHostToDevice);
 
-    RankFitnessKernel<<<numChromosomes, numGenes>>>(dimension, dev_flattenedPop, dev_fitnessRank);
+    RankFitnessKernel<<<numChromosomes, numGenes>>>(numChromosomes, dimension, dev_flattenedPop, dev_fitnessCount);
 
     int *fitnessRank = new int[numChromosomes];
-    cudaMemcpy(fitnessRank, dev_fitnessRank, numChromosomes * sizeof(int), cudaMemcpyDeviceToHost);
+    int *fitnessCount = new int[numChromosomes];
+
+    cudaMemcpy(fitnessCount, dev_fitnessCount, numChromosomes * sizeof(int), cudaMemcpyDeviceToHost);
     
     cudaFree(dev_flattenedPop);
-    cudaFree(dev_fitnessRank);
+    cudaFree(dev_fitnessCount);
 
+    // This can be parallelized but I was having some mem issues
+    for (int i = 0; i < numChromosomes; ++i)
+    {
+        fitnessRank[i] = 0;
+        for (int j = 0; j < numChromosomes; ++j)
+        {   
+            if (fitnessCount[i] > fitnessCount[j])
+            {
+                fitnessRank[i] += 1;
+            }
+        }
+    }
+    
     return fitnessRank;
 }
 

@@ -49,18 +49,17 @@ int SudokuDriver(string fileIn)
 
     for (int i = 0; i < pop->GetSize(); ++i)
     {
-        cout << fitnessRanks[i] << endl;
+        std::cout << fitnessRanks[i] << "\n"; 
     }
-
-
     Population *pop_2 = Breed(pop, fitnessRanks);
     delete pop;
 
     cout << "------------------\n";
     pop_2->PrintPopulation(cout);
-    delete fitnessRanks;
 
+    delete fitnessRanks;
     delete board;
+    delete pop_2;
 
     return 0;
 }
