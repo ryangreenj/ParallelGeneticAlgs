@@ -351,3 +351,5 @@ test.o
 *.dll
 out
 Build/
+
+/.vscode
