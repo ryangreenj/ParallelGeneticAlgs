@@ -254,34 +254,20 @@ int* RankFitness(int numChromosomes, int numGenes, char *flattenedPop)
     return fitnessRank;
 }
 
-
-__global__ void OrderPopulation(int numChromosomes, int numGenes, char *flattenedPop, int *fitnessRank, int *gridswap, char *flattenedPopOut)
+__global__ void BreedKernel(int numChromosomes, int numGenes, int seed, char *flattenedPop, int *subgrid_swaps, int *gridswap, char *flattenedPopOut)
 {
-    
+    int grid = ((threadIdx.x % 9) / 3) + ((threadIdx.x / 27) * 3); // Determines the grid of current run
     int offset = ((blockIdx.x) * numGenes) + threadIdx.x;
-    int rank_offset = (fitnessRank[blockIdx.x] * numGenes) + threadIdx.x;
+    int offset_new = ((subgrid_swaps[blockIdx.x]) * numGenes) + threadIdx.x;
 
-    flattenedPopOut[rank_offset] = flattenedPop[offset];
-} 
+    // Determines random subgrid to swap if subgrid swap id is not the block id
+    int grid_swap = (blockIdx.x == subgrid_swaps[blockIdx.x]) ? blockIdx.x : (blockIdx.x + subgrid_swaps[blockIdx.x] * seed) % 9;
+    flattenedPopOut[offset] = flattenedPop[(grid == grid_swap) ? offset_new : offset ];
 
-__global__ void BreedKernel(int numChromosomes, int numGenes, char *flattenedPop, int *fitnessRank, int *gridswap, char *flattenedPopOut)
-{
-    int swap = blockIdx.x % 2 ? -1 : 1;
+    __syncthreads();
 
-    int grid = ((threadIdx.x % 9) / 3) + ((threadIdx.x / 27) * 3);
-    int offset = ((blockIdx.x) * numGenes) + threadIdx.x;
+    // Random mutations
 
-    // swaps dont look at rank
-    // if (grid == gridswap[blockIdx.x])
-    // {
-       int offset_new = ((fitnessRank[blockIdx.x]) * numGenes) + threadIdx.x;
-    //    int offset_new = ((fitnessRank[blockIdx.x]) * numGenes) + threadIdx.x;
-    //    flattenedPopOut[offset] = flattenedPop[offset_new];
-    // }
-    // else 
-    //{
-        flattenedPopOut[offset_new] = flattenedPop[offset];
-    //}
 }
 
 Population* Breed(Population *popIn)
@@ -297,11 +283,7 @@ Population* Breed(Population *popIn)
     char *flattenedPop = popIn->FlattenPopulationToArrayShuffle(numChromosomes, numGenes);
 
     int* fitnessRanks = RankFitness(numChromosomes, numGenes, flattenedPop);
-    std::cout << "------------------\n";
-    for (int i = 0; i < numChromosomes; ++i)
-    {
-        std::cout << fitnessRanks[i] << "\n"; 
-    }
+
     char *dev_flattenedPopBreed;
     char *dev_flattenedPopBreedOut;
     int *dev_fitnessRankBreed;
@@ -314,39 +296,10 @@ Population* Breed(Population *popIn)
     cudaMalloc((void **)&dev_fitnessRankBreed, numChromosomes * sizeof(int));
     cudaMalloc((void **)&dev_gridSwap, numChromosomes * sizeof(int));
 
-
-    // OrderPopulation<<<numChromosomes, numGenes>>>(numChromosomes, numGenes, dev_flattenedPopBreed, dev_fitnessRankBreed, dev_gridSwap, dev_flattenedPopBreedOut);
-    
     int* swaps = new int[numChromosomes];
-    // int* stay = new int[(int)(.2 * numChromosomes)];
     bool* stay = new bool[numChromosomes];
-    int counts = 0;
-    int counts_2 = 0;
-    // for (int i = 0; i < numChromosomes; i++){
-    //     if(rankings[i] >= (int)(.2 * numChromosomes))
-    //     {
-    //         pre_swaps[counts] = i;
-    //         counts++;
-    //     }
-    //     else
-    //     {
-    //         stay[counts_2] = i;
-    //         counts_2++;
-    //     }
 
-    // }
-
-    for (int i = 0; i < numChromosomes; i++)
-    {
-        if(fitnessRanks[i] >= (int)(.2 * numChromosomes))
-        {
-            stay[i] = false;
-        }
-        else
-        {
-            stay[i] = true;
-        }
-    }
+    for (int i = 0; i < numChromosomes; i++) stay[i] = fitnessRanks[i] < (int)(.2 * numChromosomes);
 
     for (int i = 0; i < numChromosomes; i++){
         if(fitnessRanks[i] < (int)(.2 * numChromosomes))
@@ -370,36 +323,15 @@ Population* Breed(Population *popIn)
         }
     }
 
-    std::cout << "Stays" << "\n";    
-    for (int i = 0; i < numChromosomes; i++){
-        std::cout << i << " " << swaps[i] << "\n";
-    }
-    // unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    // std::shuffle(pre_swaps, pre_swaps + (int)(.8 * numChromosomes), std::default_random_engine(seed));
-
-    // int* swaps = new int[numChromosomes];
-    // for (int i = 0; i < (.8 * numChromosomes); i = i + 2){
-    //     std::cout << "Swap " << i << " with " pre_swaps[i+1]
-    //     swaps[i] = pre_swaps[i+1];
-    //     swaps[i+1] = pre_swaps[i];
-    // }
-    // for (int i = 0; i < (.2 * numChromosomes); i++){
-    //     swaps[i + (int)(.8 * numChromosomes)] = stay[i];
-    // }
-
-    // for (int i = 0; i < (numChromosomes); i++){
-    //     std::cout << swaps[i] << "\n";
-    // }
-
     cudaMemcpy(dev_flattenedPopBreed, flattenedPop, numChromosomes * numGenes * sizeof(char), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_fitnessRankBreed, swaps, numChromosomes * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_gridSwap, grid_swap, numChromosomes * sizeof(int), cudaMemcpyHostToDevice);
-    BreedKernel<<<numChromosomes, numGenes>>>(numChromosomes, numGenes, dev_flattenedPopBreed, dev_fitnessRankBreed, dev_gridSwap, dev_flattenedPopBreedOut);
+
+    BreedKernel<<<numChromosomes, numGenes>>>(numChromosomes, numGenes, (rand() % 9) + 1, dev_flattenedPopBreed, dev_fitnessRankBreed, dev_gridSwap, dev_flattenedPopBreedOut);
     
     char *popout = new char[numChromosomes * numGenes];
     cudaMemcpy(popout, dev_flattenedPopBreedOut, numChromosomes * numGenes * sizeof(char), cudaMemcpyDeviceToHost);
     
     Population *out = new Population(numGenes, numChromosomes, lockedGenesIn, popout);
-    // Population *out = new Population(numGenes, numChromosomes, lockedGenesIn, pop);
     return out;
 }
