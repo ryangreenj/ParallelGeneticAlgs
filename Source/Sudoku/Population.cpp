@@ -2,8 +2,17 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <iostream>
 #include <math.h>
 #include <numeric>
+#include <algorithm>    // std::shuffle
+#include <array>        // std::array
+#include <random>       // std::default_random_engine
+#include <chrono>       // std::chrono::system_clock
+#include <array>
+#include <vector>
+
+#include <iterator>
 
 Population::Population(int numGenesIn, int numChromosomesIn, std::shared_ptr<bool[]> lockedGenesIn, char *flattenedPopulationIn)
 {
@@ -106,6 +115,37 @@ char* Population::FlattenPopulationToArray(int &popSizeOut, int &numGenesOut, bo
     }
 }
 
+char* Population::FlattenPopulationToArrayShuffle(int &popSizeOut, int &numGenesOut, bool doCopy)
+{
+    popSizeOut = GetSize();
+    numGenesOut = GetNumGenes();
+
+    int* order = new int[popSizeOut];
+
+    for (int i = 0; i < popSizeOut; i++) order[i] = i;
+    
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::shuffle(order, order + popSizeOut, std::default_random_engine(seed));
+
+    if (doCopy)
+    {
+        char *flattened = new char[popSizeOut * numGenesOut];
+
+        for (int i = 0; i < popSizeOut; ++i)
+        {
+            for (int j = 0; j < numGenesOut; ++j)
+            {
+                flattened[(order[i] * GetNumGenes()) + j] = flattenedPopulation[(i * GetNumGenes()) + j];
+            }
+        }
+
+        return flattened;
+    }
+    else
+    {
+        return flattenedPopulation;
+    }
+}
 void Population::PrintPopulation(std::ostream &out)
 {
     int dimension = sqrt(numGenes);

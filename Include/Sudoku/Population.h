@@ -22,6 +22,7 @@ public:
 
     bool GeneratePopulation(Board *boardIn, int numChromosomes);
     char* FlattenPopulationToArray(int &popSizeOut, int &numGenesOut, bool doCopy=true); // Returned pointer NEEDS to be deleted by user IF doCopy == true
+    char* FlattenPopulationToArrayShuffle(int &popSizeOut, int &numGenesOut, bool doCopy=true); // Returned pointer NEEDS to be deleted by user IF doCopy == true
     void PrintPopulation(std::ostream &out);
 
 private:

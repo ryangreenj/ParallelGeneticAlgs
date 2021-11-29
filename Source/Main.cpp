@@ -45,19 +45,13 @@ int SudokuDriver(string fileIn)
 
     // Fitness ranking is parallelized
     // Fitness score is number of errors : Lower score == better board
-    int *fitnessRanks = RankFitness(pop);
-    cout << "------------------\n";
-    for (int i = 0; i < pop->GetSize(); ++i)
-    {
-        std::cout << ")" << fitnessRanks[i] << "\n"; 
-    }
-    Population *pop_2 = Breed(pop, fitnessRanks);
+    
+    Population *pop_2 = Breed(pop);
     delete pop;
 
     cout << "------------------\n";
     pop_2->PrintPopulation(cout);
 
-    delete fitnessRanks;
     delete board;
     delete pop_2;
 
