@@ -128,9 +128,56 @@ Board* PredetermineTiles(Board *boardIn)
 
 
 
-__global__ void RankFitnessKernel(int numChromosomes, int numGenes, char *flattenedPop, int *fitnessRankOut)
+__global__ void RankFitnessKernel(int dimension, char *flattenedPop, int *fitnessRankOut)
 {
-    //TODO
+    int tileId = threadIdx.x;
+    int chromOffset = blockIdx.x * blockDim.x;
+    int row = tileId / dimension;
+    int col = tileId % dimension;
+
+    __shared__ int errors[MAX_DIM * MAX_DIM];
+    errors[threadIdx.x] = 0;
+
+    char currTile = flattenedPop[chromOffset + tileId];
+
+    // Count how many tiles in col/row are same (conflicting) with current tile
+    for (int iVal = 0; iVal < dimension; ++iVal)
+    {
+        int colTile = iVal * dimension + col;
+        int rowTile = row * dimension + iVal;
+
+        if (colTile != tileId && flattenedPop[chromOffset + colTile] == currTile)
+        {
+            ++errors[threadIdx.x];
+        }
+
+        if (rowTile != tileId && flattenedPop[chromOffset + rowTile] == currTile)
+        {
+            ++errors[threadIdx.x];
+        }
+    }
+
+    __syncthreads();
+
+    // Parallel reduction
+    if (threadIdx.x % dimension == 0)
+    {
+        for (int i = 1; i < dimension; ++i)
+        {
+            errors[threadIdx.x] += errors[threadIdx.x + i];
+        }
+    }
+
+    __syncthreads();
+
+    if (threadIdx.x == 0)
+    {
+        fitnessRankOut[blockIdx.x] = 0;
+        for (int i = 0; i < dimension; ++i)
+        {
+            fitnessRankOut[blockIdx.x] += errors[i * dimension];
+        }
+    }
 }
 
 int* RankFitness(Population *popIn)
@@ -139,8 +186,9 @@ int* RankFitness(Population *popIn)
     int numGenes = 0;
 
     // Arguments are output args, filled by function
-    // Need to delete returned pointer at end
-    char *flattenedPop = popIn->FlattenPopulationToArray(numChromosomes, numGenes);
+    char *flattenedPop = popIn->FlattenPopulationToArray(numChromosomes, numGenes, false);
+
+    int dimension = sqrt(numGenes);
 
     char *dev_flattenedPop;
     int *dev_fitnessRank;
@@ -150,12 +198,11 @@ int* RankFitness(Population *popIn)
 
     cudaMemcpy(dev_flattenedPop, flattenedPop, numChromosomes * numGenes * sizeof(char), cudaMemcpyHostToDevice);
 
-    RankFitnessKernel<<<numChromosomes, numGenes>>>(numChromosomes, numGenes, dev_flattenedPop, dev_fitnessRank);
+    RankFitnessKernel<<<numChromosomes, numGenes>>>(dimension, dev_flattenedPop, dev_fitnessRank);
 
     int *fitnessRank = new int[numChromosomes];
     cudaMemcpy(fitnessRank, dev_fitnessRank, numChromosomes * sizeof(int), cudaMemcpyDeviceToHost);
     
-    delete[] flattenedPop;
     cudaFree(dev_flattenedPop);
     cudaFree(dev_fitnessRank);
 

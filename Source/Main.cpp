@@ -1,3 +1,5 @@
+#include <cstdlib>
+#include <ctime>
 #include <iostream>
 #include <string>
 
@@ -12,6 +14,7 @@ int SudokuDriver(string fileIn);
 
 int main(int argc, char **argv)
 {
+    std::srand(std::time(nullptr)); // Seed random generator with current time
     return SudokuDriver("Data/SudokuBoard9x9_2.txt");
 }
 
@@ -40,7 +43,15 @@ int SudokuDriver(string fileIn)
 
     pop->PrintPopulation(cout);
 
+    // Fitness ranking is parallelized
+    // Fitness score is number of errors : Lower score == better board
     int *fitnessRanks = RankFitness(pop);
+
+    for (int i = 0; i < pop->GetSize(); ++i)
+    {
+        cout << fitnessRanks[i] << endl;
+    }
+
     delete fitnessRanks;
 
     delete pop;
