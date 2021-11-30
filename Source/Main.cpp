@@ -38,22 +38,28 @@ int SudokuDriver(string fileIn)
     cout << "Initial Board\n";
     out->PrintBoard(cout);
     
-    Population *pop = new Population(out, 10);
+    Population *pop = new Population(out, 1000);
     delete out;
 
     pop->PrintPopulation(cout);
 
     // Fitness ranking is parallelized
     // Fitness score is number of errors : Lower score == better board
-    
-    Population *pop_2 = Breed(pop);
-    delete pop;
+    // Population *pop_2 = nullptr;
+    // Population *pop_2 = Breed(pop);
+    // delete pop;
 
-    cout << "------------------\n";
-    pop_2->PrintPopulation(cout);
+    for (int i = 0; i < 100; i++){
+        pop = Breed(pop);
+    }
+    
+    // pop->PrintPopulation(cout);
+
+    // cout << "------------------\n";
+    
 
     delete board;
-    delete pop_2;
+    delete pop;
 
     return 0;
 }

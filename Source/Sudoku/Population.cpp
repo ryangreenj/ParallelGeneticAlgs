@@ -146,6 +146,7 @@ char* Population::FlattenPopulationToArrayShuffle(int &popSizeOut, int &numGenes
         return flattenedPopulation;
     }
 }
+
 void Population::PrintPopulation(std::ostream &out)
 {
     int dimension = sqrt(numGenes);
