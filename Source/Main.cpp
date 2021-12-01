@@ -38,17 +38,10 @@ int SudokuDriver(string fileIn)
     cout << "Initial Board\n";
     out->PrintBoard(cout);
     
-    Population *pop = new Population(out, 300);
+    Population *pop = new Population(out, 250);
     delete out;
 
-    // pop->PrintPopulation(cout);
-
-    // Fitness ranking is parallelized
-    // Fitness score is number of errors : Lower score == better board
-    // Population *pop_2 = nullptr;
-    // Population *pop_2 = Breed(pop);
-    // delete pop;
-
+  
     int bestrank;
     char* best_board = new char[81];
 
@@ -65,11 +58,6 @@ int SudokuDriver(string fileIn)
         }
         std::cout << "\n";
     }
-    // pop->PrintPopulation(cout);
-    
-    // pop->PrintPopulation(cout);
-
-    // cout << "------------------\n";
     
 
     delete board;
