@@ -5,9 +5,6 @@
 #include "Sudoku/Board.h"
 #include "Sudoku/Population.h"
 
-const double RANK_RETENTION_RATE = 0.5;
-const double RANDOM_RETENTION_RATE = 0.2;
-
 // Determine if a tile can be filled in immediately based on the other tiles in the row/column/subgrid
 Board* PredetermineTiles(Board *boardIn);
 

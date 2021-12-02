@@ -120,16 +120,16 @@ char* Population::FlattenPopulationToArrayShuffle(int &popSizeOut, int &numGenes
     popSizeOut = GetSize();
     numGenesOut = GetNumGenes();
 
-    int* order = new int[popSizeOut];
-
-    for (int i = 0; i < popSizeOut; i++) order[i] = i;
-    
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    std::shuffle(order, order + popSizeOut, std::default_random_engine(seed));
-
     if (doCopy)
     {
         char *flattened = new char[popSizeOut * numGenesOut];
+
+        int *order = new int[popSizeOut];
+
+        std::iota(order, order + popSizeOut, 0); // Fill vals with [0, 1, ..., popSizeOut-1]
+
+        unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+        std::shuffle(order, order + popSizeOut, std::default_random_engine(seed));
 
         for (int i = 0; i < popSizeOut; ++i)
         {
@@ -139,6 +139,7 @@ char* Population::FlattenPopulationToArrayShuffle(int &popSizeOut, int &numGenes
             }
         }
 
+        delete order;
         return flattened;
     }
     else

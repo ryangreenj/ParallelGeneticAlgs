@@ -42,10 +42,10 @@ int SudokuDriver(string fileIn)
     delete out;
 
   
-    int bestrank;
-    char* best_board = new char[81];
+    int bestrank = 0;
+    char* best_board = new char[pop->GetNumGenes()];
 
-    for (int i = 0; i < 1000; i++){
+    for (int i = 0; i < NUM_GENERATIONS; i++){
         pop = Breed(pop, bestrank, best_board);
         if (bestrank < 5) break;
     }
@@ -59,7 +59,7 @@ int SudokuDriver(string fileIn)
         std::cout << "\n";
     }
     
-
+    delete best_board;
     delete board;
     delete pop;
 
