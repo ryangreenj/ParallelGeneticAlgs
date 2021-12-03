@@ -335,8 +335,48 @@ Population* Breed(Population *popIn, int &bestrank, char* bestboard)
     int dimension = sqrt(numGenes);
     int subDim = sqrt(dimension);
 
+    // START FITNESS RANK
     int *errorCounts = new int[numChromosomes];
-    int* fitnessRanks = RankFitness(numChromosomes, numGenes, flattenedPop, errorCounts);
+
+    char *dev_flattenedPop;
+    int *dev_fitnessCount;
+
+    cudaMalloc((void **)&dev_flattenedPop, numChromosomes * numGenes * sizeof(char));
+    cudaMalloc((void **)&dev_fitnessCount, numChromosomes * sizeof(int));
+
+    cudaMemcpy(dev_flattenedPop, flattenedPop, numChromosomes * numGenes * sizeof(char), cudaMemcpyHostToDevice);
+
+    auto startFitness = std::chrono::high_resolution_clock::now();
+    RankFitnessKernel<<<numChromosomes, numGenes >>>(numChromosomes, dimension, dev_flattenedPop, dev_fitnessCount);
+    auto stopFitness = std::chrono::high_resolution_clock::now();
+
+    cudaMemcpy(errorCounts, dev_fitnessCount, numChromosomes * sizeof(int), cudaMemcpyDeviceToHost);
+
+    cudaFree(dev_fitnessCount);
+
+    // Give chromosomes a unique rank based on their errorCount/fitnessScore
+
+    // Using std::sort is O(n log n), previous algorithm was O(n^2)
+    // <fitnessScore, chromosomeIndex>
+    std::vector<std::pair<int, int>> scoreToIndex = std::vector<std::pair<int, int>>();
+
+    for (int i = 0; i < numChromosomes; ++i)
+    {
+        scoreToIndex.push_back(std::make_pair(errorCounts[i], i));
+    }
+
+    // Sorts by fitnessScore, O(log n)
+    std::sort(scoreToIndex.begin(), scoreToIndex.end());
+
+    int *fitnessRanks = new int[numChromosomes];
+
+    int i = 0;
+    for (auto &pair : scoreToIndex)
+    {
+        fitnessRanks[pair.second] = i++;
+    }
+
+    // END FITNESS RANK
 
     // This is just used for printing the best solution at the end    
     int prev_best = bestrank;
@@ -364,9 +404,7 @@ Population* Breed(Population *popIn, int &bestrank, char* bestboard)
 
     std::cout << "Best error - " << bestrank << "\n";
     
-    char *dev_flattenedPopBreed;
     char *dev_tempPopualtion;
-    char *dev_flattenedPopBreedOut;
     int *dev_ranks;
     bool *dev_lockedIn;
     int *dev_swap_index;
@@ -374,27 +412,27 @@ Population* Breed(Population *popIn, int &bestrank, char* bestboard)
 
     int retention_size = (int)(numChromosomes * RANK_RETENTION_RATE);
 
-    cudaMalloc((void **)&dev_flattenedPopBreed, numChromosomes * numGenes * sizeof(char));
-    cudaMalloc((void **)&dev_flattenedPopBreedOut, numChromosomes * numGenes * sizeof(char));
     cudaMalloc((void **)&dev_tempPopualtion, retention_size * numGenes * sizeof(char));
     cudaMalloc((void **)&dev_ranks, numChromosomes * sizeof(int));
     cudaMalloc((void **)&dev_lockedIn, numChromosomes * sizeof(bool));
     cudaMalloc((void **)&dev_swap_index, numChromosomes * sizeof(int));
     cudaMalloc((void **)&dev_swap_candidates, numChromosomes * 2 * sizeof(int));
 
-    cudaMemcpy(dev_flattenedPopBreed, flattenedPop, numChromosomes * numGenes * sizeof(char), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_ranks, fitnessRanks, numChromosomes * sizeof(int), cudaMemcpyHostToDevice);
     
     cudaMemcpy(dev_lockedIn, lockedGenesIn.get(), numChromosomes * sizeof(bool), cudaMemcpyHostToDevice);
 
-    BreedKernel<<<numChromosomes, numGenes>>>(numChromosomes, numGenes, dimension, subDim, (rand() % dimension) + 1, dev_flattenedPopBreed, dev_ranks, dev_lockedIn, dev_swap_index, dev_swap_candidates, dev_tempPopualtion);
-    
+    auto startBreed = std::chrono::high_resolution_clock::now();
+    BreedKernel<<<numChromosomes, numGenes>>>(numChromosomes, numGenes, dimension, subDim, (rand() % dimension) + 1, dev_flattenedPop, dev_ranks, dev_lockedIn, dev_swap_index, dev_swap_candidates, dev_tempPopualtion);
+    auto stopBreed = std::chrono::high_resolution_clock::now();
+
+    std::cout << "Parallel Time: " << ((std::chrono::duration_cast<std::chrono::microseconds>(stopFitness - startFitness)).count() + (std::chrono::duration_cast<std::chrono::microseconds>(stopBreed - startBreed)).count()) << "\n";
+
     char *popout = new char[numChromosomes * numGenes];
-    cudaMemcpy(popout, dev_flattenedPopBreed, numChromosomes * numGenes * sizeof(char), cudaMemcpyDeviceToHost);
+    cudaMemcpy(popout, dev_flattenedPop, numChromosomes * numGenes * sizeof(char), cudaMemcpyDeviceToHost);
     
-    cudaFree(dev_flattenedPopBreed);
+    cudaFree(dev_flattenedPop);
     cudaFree(dev_ranks);
-    cudaFree(dev_flattenedPopBreedOut);
     cudaFree(dev_lockedIn);
     cudaFree(dev_tempPopualtion);
     cudaFree(dev_swap_index);

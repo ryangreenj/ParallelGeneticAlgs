@@ -13,7 +13,7 @@
 namespace Sequential
 {
     // Calculate the fitness of a given population, return scores of length popIn->GetSize()
-    int *RankFitness(int numChromosomes, int numGenes, char *flattenedPop, int *fitnessCount);
+    int *RankFitness(int numChromosomes, int numGenes, char *flattenedPop, int *fitnessCount, int &fitnessTime);
 
     Population *Breed(Population *popIn, int &bestrank, char *bestboard);
 }

@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
@@ -27,6 +28,7 @@ int SudokuDriver(string fileIn)
 {
     bool success = false;
     Board *board = new Board(fileIn, success);
+    int dimension = board->GetDimension();
 
     if (!success)
     {
@@ -41,21 +43,25 @@ int SudokuDriver(string fileIn)
     
     Population *pop = new Population(out, 250);
     delete out;
-
   
     int bestrank = 0;
     char* best_board = new char[pop->GetNumGenes()];
 
     for (int i = 0; i < NUM_GENERATIONS; i++){
+        
+#if USE_PARALLEL
         pop = Breed(pop, bestrank, best_board);
+#else
+        pop = Sequential::Breed(pop, bestrank, best_board);
+#endif
         if (bestrank < 5) break;
     }
 
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < dimension; i++)
     {
-        for (int j = 0; j < 9; j++)
+        for (int j = 0; j < dimension; j++)
         {
-            std::cout << (int)best_board[(i * 9) + j] << " ";
+            std::cout << (int)best_board[(i * dimension) + j] << " ";
         }
         std::cout << "\n";
     }

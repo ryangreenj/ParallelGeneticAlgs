@@ -164,10 +164,11 @@ void RankFitnessKernel(int chromIndex, int geneIndex, int numGenes, int dimensio
     }
 }
 
-int *Sequential::RankFitness(int numChromosomes, int numGenes, char *flattenedPop, int *errorCountsOut)
+int *Sequential::RankFitness(int numChromosomes, int numGenes, char *flattenedPop, int *errorCountsOut, int &timeMicroseconds)
 {
     int dimension = sqrt(numGenes);
 
+    auto startFitness = std::chrono::high_resolution_clock::now();
     for (int iChrom = 0; iChrom < numChromosomes; ++iChrom)
     {
         errorCountsOut[iChrom] = 0;
@@ -176,6 +177,9 @@ int *Sequential::RankFitness(int numChromosomes, int numGenes, char *flattenedPo
             RankFitnessKernel(iChrom, iGene, numGenes, dimension, flattenedPop, errorCountsOut);
         }
     }
+    auto stopFitness = std::chrono::high_resolution_clock::now();
+
+    timeMicroseconds = (std::chrono::duration_cast<std::chrono::microseconds>(stopFitness - startFitness)).count();
 
     // Give chromosomes a unique rank based on their errorCount/fitnessScore
 
@@ -299,9 +303,10 @@ Population *Sequential::Breed(Population * popIn, int &bestrank, char *bestboard
 
     int dimension = sqrt(numGenes);
     int subDim = sqrt(dimension);
+    int fitnessTime = 0;
 
     int *errorCounts = new int[numChromosomes];
-    int *fitnessRanks = RankFitness(numChromosomes, numGenes, flattenedPop, errorCounts);
+    int *fitnessRanks = RankFitness(numChromosomes, numGenes, flattenedPop, errorCounts, fitnessTime);
 
     // This is just used for printing the best solution at the end    
     int prev_best = bestrank;
@@ -335,6 +340,7 @@ Population *Sequential::Breed(Population * popIn, int &bestrank, char *bestboard
     int *dev_swap_index = new int[numChromosomes];
     int *dev_swap_candidates = new int[numChromosomes * 2];
 
+    auto startBreed = std::chrono::high_resolution_clock::now();
     for (int iChrom = 0; iChrom < numChromosomes; ++iChrom)
     {
         for (int iGene = 0; iGene < numGenes; ++iGene)
@@ -366,6 +372,9 @@ Population *Sequential::Breed(Population * popIn, int &bestrank, char *bestboard
             BreedKernel4(iChrom, iGene, numChromosomes, numGenes, dimension, subDim, (rand() % dimension) + 1, flattenedPop, fitnessRanks, lockedGenesIn.get(), dev_swap_index, dev_swap_candidates, dev_tempPopualtion);
         }
     }
+    auto stopBreed = std::chrono::high_resolution_clock::now();
+
+    std::cout << "Parallel Time: " << (fitnessTime + (std::chrono::duration_cast<std::chrono::microseconds>(stopBreed - startBreed)).count()) << "\n";
 
     delete[] dev_tempPopualtion;
     delete[] dev_swap_index;
