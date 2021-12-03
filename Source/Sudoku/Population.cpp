@@ -22,6 +22,19 @@ Population::Population(int numGenesIn, int numChromosomesIn, std::shared_ptr<boo
     flattenedPopulation = flattenedPopulationIn;
 }
 
+Population::Population(const Population &popToCopy)
+{
+    numGenes = popToCopy.numGenes;
+    numChromosomes = popToCopy.numChromosomes;
+    lockedGenes = popToCopy.lockedGenes;
+    flattenedPopulation = new char[numChromosomes * numGenes];
+
+    for (int i = 0; i < (numChromosomes * numGenes); ++i)
+    {
+        flattenedPopulation[i] = popToCopy.flattenedPopulation[i];
+    }
+}
+
 int Population::GetSize()
 {
     return numChromosomes;
