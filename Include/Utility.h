@@ -1,11 +1,12 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 
-const int MAX_DIM = 15;
+#define MAX_DIM 15
+#define NUM_GENERATIONS 1000
+#define RANK_RETENTION_RATE 0.5
+#define RANDOM_RETENTION_RATE 0.2
 
 #define GET_SUB_GRID(tileIndex, subDim) ((tileIndex / subDim / subDim) / subDim) * subDim + ((tileIndex % (subDim * subDim)) / subDim)
-//#define GET_SUB_GRID(tileIndex, subDim, dim) ((tileIndex / dim) / subDim) * subDim + ((tileIndex % dim) / subDim)
-// These are the same
 
 #endif
 

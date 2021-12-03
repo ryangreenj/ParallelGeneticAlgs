@@ -9,6 +9,8 @@
 Board* PredetermineTiles(Board *boardIn);
 
 // Calculate the fitness of a given population, return scores of length popIn->GetSize()
-int* RankFitness(Population *popIn);
+int* RankFitness(int numChromosomes, int numGenes, char *flattenedPop, int *fitnessCount);
+
+Population* Breed(Population *popIn, int &bestrank, char* bestboard);
 
 #endif

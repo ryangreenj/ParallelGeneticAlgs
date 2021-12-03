@@ -38,24 +38,30 @@ int SudokuDriver(string fileIn)
     cout << "Initial Board\n";
     out->PrintBoard(cout);
     
-    Population *pop = new Population(out, 10);
+    Population *pop = new Population(out, 250);
     delete out;
 
-    pop->PrintPopulation(cout);
+  
+    int bestrank = 0;
+    char* best_board = new char[pop->GetNumGenes()];
 
-    // Fitness ranking is parallelized
-    // Fitness score is number of errors : Lower score == better board
-    int *fitnessRanks = RankFitness(pop);
-
-    for (int i = 0; i < pop->GetSize(); ++i)
-    {
-        cout << fitnessRanks[i] << endl;
+    for (int i = 0; i < NUM_GENERATIONS; i++){
+        pop = Breed(pop, bestrank, best_board);
+        if (bestrank < 5) break;
     }
 
-    delete fitnessRanks;
-
-    delete pop;
+    for (int i = 0; i < 9; i++)
+    {
+        for (int j = 0; j < 9; j++)
+        {
+            std::cout << (int)best_board[(i * 9) + j] << " ";
+        }
+        std::cout << "\n";
+    }
+    
+    delete best_board;
     delete board;
+    delete pop;
 
     return 0;
 }
