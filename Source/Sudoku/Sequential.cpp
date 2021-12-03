@@ -1,7 +1,7 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-#include "Sudoku/Kernel.cuh"
+#include "Sudoku/Sequential.h"
 #include <iostream>
 #include <algorithm>    // std::shuffle
 #include <array>        // std::array
@@ -10,7 +10,6 @@
 #include <map>
 #include <curand.h>
 #include <curand_kernel.h>
-#include "..\..\Include\Sudoku\Sequential.h"
 
 /*
 void PredetermineTilesKernel(int tileId, int subDim, int dimension, char *boardIn, char *boardOut)
@@ -374,7 +373,7 @@ Population *Sequential::Breed(Population * popIn, int &bestrank, char *bestboard
     }
     auto stopBreed = std::chrono::high_resolution_clock::now();
 
-    std::cout << "Parallel Time: " << (fitnessTime + (std::chrono::duration_cast<std::chrono::microseconds>(stopBreed - startBreed)).count()) << "\n";
+    std::cout << "Sequential Time: " << (fitnessTime + (std::chrono::duration_cast<std::chrono::microseconds>(stopBreed - startBreed)).count()) << "\n";
 
     delete[] dev_tempPopualtion;
     delete[] dev_swap_index;

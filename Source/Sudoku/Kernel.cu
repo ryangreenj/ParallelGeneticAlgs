@@ -438,8 +438,8 @@ Population* Breed(Population *popIn, int &bestrank, char* bestboard)
     cudaFree(dev_swap_index);
     cudaFree(dev_swap_candidates);
 
-    delete errorCounts;
-    delete fitnessRanks;
+    delete[] errorCounts;
+    delete[] fitnessRanks;
 
     Population *out = new Population(numGenes, numChromosomes, lockedGenesIn, popout);
 

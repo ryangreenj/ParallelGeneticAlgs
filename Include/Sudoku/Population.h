@@ -12,6 +12,7 @@ class Population
 {
 public:
     Population() {}
+    Population(const Population &popToCopy);
     Population(Board *boardIn, int numChromosomesIn) { GeneratePopulation(boardIn, numChromosomesIn); }
     Population(int numGenesIn, int numChromosomesIn, std::shared_ptr<bool[]> lockedGenesIn, char *flattenedPopulationIn);
     ~Population() { if (flattenedPopulation) { delete[]flattenedPopulation; flattenedPopulation = nullptr; } }

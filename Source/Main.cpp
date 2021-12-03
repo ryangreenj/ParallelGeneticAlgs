@@ -42,19 +42,17 @@ int SudokuDriver(string fileIn)
     out->PrintBoard(cout);
     
     Population *pop = new Population(out, 250);
+#if RUN_SEQUENTIAL
+    Population *popSeq = new Population(*pop);
+#endif
     delete out;
   
     int bestrank = 0;
     char* best_board = new char[pop->GetNumGenes()];
 
     for (int i = 0; i < NUM_GENERATIONS; i++){
-        
-#if USE_PARALLEL
         pop = Breed(pop, bestrank, best_board);
-#else
-        pop = Sequential::Breed(pop, bestrank, best_board);
-#endif
-        if (bestrank < 5) break;
+        if (bestrank < 1) break;
     }
 
     for (int i = 0; i < dimension; i++)
@@ -65,8 +63,26 @@ int SudokuDriver(string fileIn)
         }
         std::cout << "\n";
     }
+
+    std::cout << "\n\nSEQUENTIAL\n\n";
+#if RUN_SEQUENTIAL
+    bestrank = 0;
+    for (int i = 0; i < NUM_GENERATIONS; i++) {
+        popSeq = Sequential::Breed(popSeq, bestrank, best_board);
+        if (bestrank < 1) break;
+    }
+
+    for (int i = 0; i < dimension; i++)
+    {
+        for (int j = 0; j < dimension; j++)
+        {
+            std::cout << (int)best_board[(i * dimension) + j] << " ";
+        }
+        std::cout << "\n";
+    }
+#endif
     
-    delete best_board;
+    delete[] best_board;
     delete board;
     delete pop;
 
