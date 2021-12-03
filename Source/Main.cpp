@@ -7,6 +7,7 @@
 #include "Sudoku/Board.h"
 #include "Sudoku/Kernel.cuh"
 #include "Sudoku/Population.h"
+#include "Sudoku/Sequential.h"
 
 using namespace std;
 
